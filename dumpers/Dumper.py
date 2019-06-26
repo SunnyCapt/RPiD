@@ -1,8 +1,8 @@
 import threading
 import time
-from _io import TextIOWrapper
 
 from dumpers.vk_d.__main__ import VK
+from rpid import Logger
 
 
 class DumperMixin:
@@ -69,9 +69,9 @@ def get_wrapper(service) -> DumperMixin:
 
 
 class Dumper(threading.Thread):
-    def __init__(self, service, log, config):
+    def __init__(self, service, logger, config):
         super().__init__(self)
-        self.log: TextIOWrapper = log
+        self.log: Logger = logger
         self.config = config
         self.service: DumperMixin = get_wrapper(service)
 
@@ -89,4 +89,3 @@ class Dumper(threading.Thread):
                 flage += 1
                 self.log.write(
                     "\ncant update " + self.service.__class__ + ": " + str(e) + "\ntime:" + str(time.time()) + "\n")
-                self.log.flush()
