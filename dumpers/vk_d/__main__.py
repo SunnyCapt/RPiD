@@ -1,0 +1,157 @@
+import time
+
+import vk
+from vk.exceptions import VkAPIError
+
+PAUSE_TIME = 1.3
+
+
+class VkMixin:
+    def __init__(self):
+        self.api: vk.API = None
+        raise NotImplemented
+
+    def __check(self):
+        raise NotImplemented
+
+
+class Account(VkMixin):
+    __LAST_CALL_TIME = int(time.time())
+
+    def __new__(cls, *args):
+        if cls is Account:
+            return None
+        return object.__new__(cls)
+
+    def get_name(self, vk_id="", need_full_info=False):
+        self.__check()
+        if vk_id.startswith("-"):
+            resp = self.api.groups.getById(group_id=str(vk_id)[1:], v=3.0)[0]
+            if need_full_info:
+                return resp
+            else:
+                return resp['name']
+        else:
+            resp = self.api.users.get(user_ids=vk_id, v=3.0)[0]
+            if need_full_info:
+                return resp
+            else:
+                return "%s %s" % (resp['first_name'], resp['last_name'])
+
+    def __check(self):
+        past_time = int(time.time()) - self.__LAST_CALL_TIME
+        if past_time < PAUSE_TIME: time.sleep(PAUSE_TIME - past_time)
+
+
+class Messages(VkMixin):
+    __LAST_CALL_TIME = int(time.time())
+
+    def __new__(cls, *args):
+        if cls is Messages:
+            return None
+        return object.__new__(cls)
+
+    def get_dialogs(self, page=0, count=200):
+        self.__check()
+        return self.api.messages.getDialogs(offset=count * page, count=count, v=3.0)
+
+    def get_peers(self, page=0, count=15):
+        dialogs = self.get_dialogs(page, count)[1:]
+        peers = []
+        for peer in dialogs:
+            if "chat_id" in peer.keys():
+                peers.append(2000000000 + peer['chat_id'])
+            else:
+                peers.append(peer['uid'])
+        return peers
+
+    def get_messages(self, vk_id, page, count=15):
+        self.__check()
+        return self.api.messages.getHistory(offset=count * page, count=count, peer_id=vk_id, v=5.38)['items']
+
+    def __check(self):
+        past_time = int(time.time()) - self.__LAST_CALL_TIME
+        if past_time < PAUSE_TIME: time.sleep(PAUSE_TIME - past_time)
+
+
+class Media(VkMixin):
+    __LAST_CALL_TIME = int(time.time())
+
+    def __new__(cls, *args):
+        if cls is Media:
+            return None
+        return object.__new__(cls)
+
+    def get_max_size_photo(self, attachment):
+        # self.__check()
+        old_size = -1
+        max_size = -1
+        if 'photo' in attachment.keys():
+            photo = attachment['photo']
+        else:
+            photo = attachment
+        for key in photo.keys():
+            if 'photo' in key:
+                new_size = int(key.split('_')[1])
+                if new_size > old_size:
+                    max_size = key
+                    old_size = new_size
+        if max_size:
+            return photo[max_size]
+        else:
+            raise AttributeError("It isnt photo attachment")
+
+    def get_posts(self, owner_id, page, count=15):
+        self.__check()
+        return self.api.wall.get(owner_id=owner_id, count=count, offset=count * page, v=5.92)
+
+    def __check(self):
+        past_time = int(time.time()) - self.__LAST_CALL_TIME
+        if past_time < PAUSE_TIME: time.sleep(PAUSE_TIME - past_time)
+
+    # dont work
+    # def getVideo(self, raw_video):
+    #     raw_video = raw_video['video']
+    #     url = 'https://api.vk.com/method/video.get?videos=%d_%d_%s&access_token=%s&v=5.60' % (
+    #         raw_video['owner_id'], raw_video['id'], raw_video['access_key'], self.token)
+    #     session = requests.Session()
+    #     session.headers.update({'User-Agent': 'VKAndroidApp/4.12-1118'})
+    #     video = session.get(url).json()["response"]['items'][0]
+    #     return {'player': video['player'], 'photo': self.getMaxSizePhoto(raw_video)}
+
+
+class VK(Account, Messages, Media):
+    def __init__(self, token="", login="", password=""):
+        if token:
+            self.api = self._get_api(token)
+        elif login and password:
+            self.api = self._get_api(login, password)
+        else:
+            raise AttributeError("set token or login&password")
+        self.info = {'id': self.get_name(need_full_info=True)['uid'],
+                     'name': self.get_name(),
+                     "creation_time": int(time.time())
+                     }
+        # self.__dict__.update({'id': id, 'token': token, 'api': api})
+        # self.messages = Messages(self.__dict__)
+        # self.wall = Wall(self.__dict__)
+        # self.media = Media(self.__dict__)
+
+    def _get_token(self, login, password):
+        if login.startswith("8"): login = '+7' + login[1:]
+        try:
+            session = vk.AuthSession('2685278', login, password, scope='2097151')
+            return session.access_token
+        except VkAPIError as e:
+            raise VkAPIError("cannt login: " + e.message)
+
+    def _get_api(self, token):
+        try:
+            return vk.API(vk.AuthSession(access_token=token))
+        except VkAPIError as e:
+            raise VkAPIError("cannt login: " + e.message)
+
+
+if __name__ == '__main__':
+    vk = VK()
+    print("\n".join([str(i) for i in vk.get_peers()]))

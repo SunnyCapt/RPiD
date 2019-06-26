@@ -1,0 +1,2 @@
+vk telethon
+pip install -U requests[socks]

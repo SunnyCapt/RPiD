@@ -1,0 +1,6 @@
+.idea
+*venv
+*trash
+*sessions
+*__pycache__
+*config*
