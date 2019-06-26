@@ -1,8 +1,9 @@
 import threading
 import time
 
+import config
 from dumpers.vk_d.__main__ import VK
-from rpid import Logger
+from rpid import RPiD
 
 
 class DumperMixin:
@@ -69,23 +70,22 @@ def get_wrapper(service) -> DumperMixin:
 
 
 class Dumper(threading.Thread):
-    def __init__(self, service, logger, config):
+    def __init__(self, service, rpid):
         super().__init__(self)
-        self.log: Logger = logger
-        self.config = config
+        self.rpid: RPiD = rpid
         self.service: DumperMixin = get_wrapper(service)
 
     def run(self):
         flage = 0
-        while flage < self.config.max_attempts:
+        while flage < config.max_attempts:
             try:
                 if self.service.check():
                     self.service.update()
                     if flage > 0: flage = 0
                 else:
-                    time.sleep(self.config.waiting_time)
+                    time.sleep(config.waiting_time)
                     # TODO: fix this code
             except Exception as e:
                 flage += 1
-                self.log.write(
+                self.rpid.logger.write(
                     "\ncant update " + self.service.__class__ + ": " + str(e) + "\ntime:" + str(time.time()) + "\n")

@@ -1,7 +1,9 @@
 from _io import TextIOWrapper
-import tools
+
 import config
 import dumpers
+import tools
+from Dumper import Dumper
 
 
 class Logger:
@@ -22,7 +24,7 @@ class RPiD:
         self.logger = Logger()
         try:
             self.db = tools.db(config.db_url)
-            self.vk = dumpers.vk_d.VK(config.vk_login, config.vk_password)
+            self._s_vk = dumpers.vk_d.VK(config.vk_login, config.vk_password)
             # TODO tg auth
             # TODO fb auth
         except Exception as e:
@@ -30,12 +32,22 @@ class RPiD:
             self.logger.write(str(e))
             exit(-1)
 
+    def get_services(self) -> list:
+        fields = self.__dict__
+        services = {}
+        for key in fields.keys():
+            if key.startswith("_s_"):
+                services.update({key[3:]: fields[key]})
+        return services
+
 
 def main():
-    dumper = RPiD()
-    # TODO multythread: one servise - one thread
+    rpid = RPiD()
+    for service in rpid.get_services():
+        thread = Dumper(service, rpid)
+        thread.setDaemon(True)
+        thread.start()
 
 
 if __name__ == "__main__":
-
     main()
