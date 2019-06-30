@@ -2,8 +2,7 @@ import threading
 import time
 
 import config
-from dumpers.vk_d.__main__ import VK
-from rpid import RPiD
+from dumpers.vk_d.api import VK
 
 
 class DumperMixin:
@@ -27,14 +26,19 @@ class DumperMixin:
 
 
 class VkDumper(DumperMixin):
+    def __init__(self, service):
+        self.api: VK = service
+        self.hash = -1
+
     def check(self):
-        pass
+        peers = self.api.get_peers(count=200)
+        if self.hash == peers["hash"]: return False
+        self.hash = peers["hash"]
+        return True
 
     def update(self):
-        pass
+        peers = self.api.get_peers(count=200)["items"]
 
-    def close(self):
-        pass
 
 
 """
@@ -66,13 +70,14 @@ def get_wrapper(service) -> DumperMixin:
     return {VK: VkDumper
             # TODO: tg = TgDumper
             # TODO: fb = FbDumper
-            }[service].__new__(service)
+            }[service.__class__](service)
 
 
 class Dumper(threading.Thread):
-    def __init__(self, service, rpid):
-        super().__init__(self)
-        self.rpid: RPiD = rpid
+    def __init__(self, service, logger, db):
+        threading.Thread.__init__(self, name=service.__class__.__name__)
+        self.logger = logger
+        self.db = db
         self.service: DumperMixin = get_wrapper(service)
 
     def run(self):
@@ -87,5 +92,5 @@ class Dumper(threading.Thread):
                     # TODO: fix this code
             except Exception as e:
                 flage += 1
-                self.rpid.logger.write(
-                    "\ncant update " + self.service.__class__ + ": " + str(e) + "\ntime:" + str(time.time()) + "\n")
+                self.logger.write(
+                    "cant update " + self.service.__class__.__name__ + ": " + str(e))

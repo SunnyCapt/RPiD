@@ -1,9 +1,11 @@
+import time
 from _io import TextIOWrapper
+from typing import List
 
 import config
-import dumpers
-import tools
-from Dumper import Dumper
+from dumpers.dumper import Dumper
+from dumpers.vk_d.api import VK
+from tools.db import DB
 
 
 class Logger:
@@ -15,7 +17,7 @@ class Logger:
     def write(self, data: str):
         self._queue.append(data)
         while self._queue:
-            self._file.write(data)
+            self._file.write("\n%s\n%s\ntime:%d" % ("="*25, data, time.time()))
             self._queue.pop(0)
 
 
@@ -23,16 +25,17 @@ class RPiD:
     def __init__(self):
         self.logger = Logger()
         try:
-            self.db = tools.db(config.db_url)
-            self._s_vk = dumpers.vk_d.VK(config.vk_login, config.vk_password)
+            self.db = DB(config.db_uri)
+            self._s_vk = VK(login=config.VK.login, password=config.VK.password)
             # TODO tg auth
             # TODO fb auth
         except Exception as e:
-            print("can't run dumper" + str(e))
+            print("can't run dumper: " + str(e))
             self.logger.write(str(e))
-            exit(-1)
+            raise e
+            # exit(-1)
 
-    def get_services(self) -> list:
+    def _get_services(self) -> dict:
         fields = self.__dict__
         services = {}
         for key in fields.keys():
@@ -40,13 +43,20 @@ class RPiD:
                 services.update({key[3:]: fields[key]})
         return services
 
+    def get_wrapped_serv(self) -> List[Dumper]:
+        wrapped_services = []
+        for service in self._get_services().values():
+            dumper = Dumper(service, self.logger, self.db)
+            wrapped_services.append(dumper)
+        return wrapped_services
+
 
 def main():
     rpid = RPiD()
-    for service in rpid.get_services():
-        thread = Dumper(service, rpid)
+    for thread in rpid.get_wrapped_serv():
         thread.setDaemon(True)
         thread.start()
+    input()
 
 
 if __name__ == "__main__":

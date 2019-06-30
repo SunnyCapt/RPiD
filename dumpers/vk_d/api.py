@@ -3,6 +3,8 @@ import time
 import vk
 from vk.exceptions import VkAPIError
 
+import config
+
 PAUSE_TIME = 1.3
 
 
@@ -18,7 +20,7 @@ class VkMixin:
 class Account(VkMixin):
     __LAST_CALL_TIME = int(time.time())
 
-    def __new__(cls, *args):
+    def __new__(cls, *arg, **args):
         if cls is Account:
             return None
         return object.__new__(cls)
@@ -26,13 +28,16 @@ class Account(VkMixin):
     def get_name(self, vk_id="", need_full_info=False):
         self.__check()
         if vk_id.startswith("-"):
-            resp = self.api.groups.getById(group_id=str(vk_id)[1:], v=3.0)[0]
+            resp = self.api.groups.getById(group_id=str(vk_id)[1:], v=5.0)
             if need_full_info:
                 return resp
             else:
                 return resp['name']
         else:
-            resp = self.api.users.get(user_ids=vk_id, v=3.0)[0]
+            if vk_id:
+                resp = self.api.users.get(user_ids=vk_id, v=5.100)[0]
+            else:
+                resp = self.api.users.get(v=5.100)[0]
             if need_full_info:
                 return resp
             else:
@@ -46,24 +51,26 @@ class Account(VkMixin):
 class Messages(VkMixin):
     __LAST_CALL_TIME = int(time.time())
 
-    def __new__(cls, *args):
+    def __new__(cls, *arg, **args):
         if cls is Messages:
             return None
         return object.__new__(cls)
 
     def get_dialogs(self, page=0, count=200):
         self.__check()
-        return self.api.messages.getDialogs(offset=count * page, count=count, v=3.0)
+        return self.api.messages.getDialogs(offset=count * page, count=count, v=5.0)
 
     def get_peers(self, page=0, count=15):
-        dialogs = self.get_dialogs(page, count)[1:]
+        dialogs = self.get_dialogs(page, count)["items"]
         peers = []
+        date_hash = 0
         for peer in dialogs:
             if "chat_id" in peer.keys():
                 peers.append(2000000000 + peer['chat_id'])
             else:
-                peers.append(peer['uid'])
-        return peers
+                peers.append(peer['user_id'])
+            date_hash += peer["date"]
+        return {"items": peers, "hash": date_hash}
 
     def get_messages(self, vk_id, page, count=15):
         self.__check()
@@ -77,7 +84,7 @@ class Messages(VkMixin):
 class Media(VkMixin):
     __LAST_CALL_TIME = int(time.time())
 
-    def __new__(cls, *args):
+    def __new__(cls, *arg, **args):
         if cls is Media:
             return None
         return object.__new__(cls)
@@ -123,12 +130,14 @@ class Media(VkMixin):
 class VK(Account, Messages, Media):
     def __init__(self, token="", login="", password=""):
         if token:
+            self.token = token
             self.api = self._get_api(token)
         elif login and password:
-            self.api = self._get_api(login, password)
+            self.token = self._get_token(login, password)
+            self.api = self._get_api(self.token)
         else:
             raise AttributeError("set token or login&password")
-        self.info = {'id': self.get_name(need_full_info=True)['uid'],
+        self.info = {'id': self.get_name(need_full_info=True)['id'],
                      'name': self.get_name(),
                      "creation_time": int(time.time())
                      }
@@ -151,7 +160,10 @@ class VK(Account, Messages, Media):
         except VkAPIError as e:
             raise VkAPIError("cannt login: " + e.message)
 
+    def __str__(self):
+        return "%s\nid:   %s\nname: %s\n%s" % ("=" * 20, str(self.info["id"]), self.info["name"], "=" * 20)
+
 
 if __name__ == '__main__':
-    vk = VK()
-    print("\n".join([str(i) for i in vk.get_peers()]))
+    vk = VK(login=config.VK.login, password=config.VK.password)
+    print(vk)
