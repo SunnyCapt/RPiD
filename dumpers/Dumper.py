@@ -82,13 +82,13 @@ class Dumper(threading.Thread):
 
     def run(self):
         flage = 0
-        while flage < config.max_attempts:
+        while flage < config.settings.max_attempts:
             try:
                 if self.service.check():
                     self.service.update()
                     if flage > 0: flage = 0
                 else:
-                    time.sleep(config.waiting_time)
+                    time.sleep(config.settings.waiting_time)
                     # TODO: fix this code
             except Exception as e:
                 flage += 1

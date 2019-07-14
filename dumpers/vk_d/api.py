@@ -27,6 +27,7 @@ class Account(VkMixin):
 
     def get_name(self, vk_id="", need_full_info=False):
         self.__check()
+        vk_id = str(vk_id)
         if vk_id.startswith("-"):
             resp = self.api.groups.getById(group_id=str(vk_id)[1:], v=5.0)
             if need_full_info:
@@ -128,6 +129,14 @@ class Media(VkMixin):
 
 
 class VK(Account, Messages, Media):
+    class info:
+        def __init__(self, id=0, name="", creation_time=0, login="", password=""):
+            self.id = id
+            self.name = name
+            self.creation_time = creation_time
+            self.login = login
+            self.password = password
+
     def __init__(self, token="", login="", password=""):
         if token:
             self.token = token
@@ -137,10 +146,12 @@ class VK(Account, Messages, Media):
             self.api = self._get_api(self.token)
         else:
             raise AttributeError("set token or login&password")
-        self.info = {'id': self.get_name(need_full_info=True)['id'],
-                     'name': self.get_name(),
-                     "creation_time": int(time.time())
-                     }
+        self.info = VK.info(id=self.get_name(need_full_info=True)['id'],
+                            name=self.get_name(),
+                            creation_time=int(time.time()),
+                            login=login,
+                            password=password)
+
         # self.__dict__.update({'id': id, 'token': token, 'api': api})
         # self.messages = Messages(self.__dict__)
         # self.wall = Wall(self.__dict__)
@@ -165,5 +176,5 @@ class VK(Account, Messages, Media):
 
 
 if __name__ == '__main__':
-    vk = VK(login=config.VK.login, password=config.VK.password)
+    vk = VK(login=config.vk.login, password=config.vk.password)
     print(vk)
