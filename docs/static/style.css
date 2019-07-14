@@ -1,3 +1,51 @@
 body{
-	color: #24292e;
+	background-color: #2a2a29;
+	font-size: 18px;
+	color: #f0e7d5
+}
+
+#intro {
+	margin-top: 150px;
+}
+
+.col-sm-3{
+	max-width: 60%;
+}
+
+.title{
+	font-style: italic;
+	max-width: 80%;
+	text-align: center;
+}
+
+.links{
+	color: red;
+	font-style: bold;
+	text-decoration: none
+}
+
+.links:hover{
+	color: red;
+	font-style: bold;
+	text-decoration: none
+}
+
+#reponame{
+	margin-top: 7px;
+	color: #aa759f;
+}
+
+#head{
+	background-color: #222226;
+	position: fixed;
+	z-index: 1030;
+	height: 80px;
+	width: 100%;
+}
+
+hr {
+  border-color: #EEEEEE;
+  border-style: solid;
+  border-width: 1px 0;
+  margin: 20px 0;
 }
