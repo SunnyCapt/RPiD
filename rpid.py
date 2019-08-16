@@ -14,6 +14,7 @@ class Logger:
         self._file: TextIOWrapper = open(path_to_log, "a+")
         self._queue = []
 
+    # TODO: make sync
     def write(self, data: str, show: bool = True):
         data = "\n%s\n%s\ntime:%d" % ("=" * 25, data, time.time())
         if show: print(data)
@@ -46,7 +47,7 @@ class RPiD:
                 services.update({key[3:]: fields[key]})
         return services
 
-    def get_wrapped_serv(self) -> List[Dumper]:
+    def get_dumpers(self) -> List[Dumper]:
         wrapped_services = []
         for service in self._get_services().values():
             dumper = Dumper(service, self.logger, self.db)
@@ -56,7 +57,7 @@ class RPiD:
 
 def main():
     rpid = RPiD()
-    for thread in rpid.get_wrapped_serv():
+    for thread in rpid.get_dumpers():
         thread.setDaemon(True)
         thread.start()
     input()

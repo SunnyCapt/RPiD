@@ -73,6 +73,23 @@ class Messages(VkMixin):
             date_hash += peer["date"]
         return {"items": peers, "hash": date_hash}
 
+    def get_all_peers(self):
+        page = 0
+        dialogs = self.get_dialogs(page, 200)["items"]
+        peers = []
+        date_hash = 0
+        while True:
+            for peer in dialogs:
+                if "chat_id" in peer.keys():
+                    peers.append(2000000000 + peer['chat_id'])
+                else:
+                    peers.append(peer['user_id'])
+                date_hash += peer["date"]
+            page += 1
+            dialogs = self.get_dialogs(page, 200)["items"]
+            if len(dialogs) != 200: break
+        return {"items": peers, "hash": date_hash}
+
     def get_messages(self, vk_id, page, count=15):
         self.__check()
         return self.api.messages.getHistory(offset=count * page, count=count, peer_id=vk_id, v=5.38)['items']

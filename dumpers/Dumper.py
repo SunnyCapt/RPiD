@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 
@@ -28,16 +29,25 @@ class DumperMixin:
 class VkDumper(DumperMixin):
     def __init__(self, service):
         self.api: VK = service
+        self.peers = []
         self.hash = -1
 
+    @staticmethod
+    def _check_paths():
+        os.makedirs(config.path.to_vk_dump, exist_ok=True)
+        return None
+
     def check(self):
-        peers = self.api.get_peers(count=200)
+        peers = self.api.get_all_peers()
         if self.hash == peers["hash"]: return False
         self.hash = peers["hash"]
+        self.peers = peers["items"]
         return True
 
     def update(self):
-        peers = self.api.get_peers(count=200)["items"]
+        self._check_paths()
+        print("VK is updated!")
+        return None
 
 
 
@@ -81,16 +91,14 @@ class Dumper(threading.Thread):
         self.service: DumperMixin = get_wrapper(service)
 
     def run(self):
-        flage = 0
-        while flage < config.settings.max_attempts:
+        att_count = 0
+        while att_count < config.settings.max_attempts:
             try:
                 if self.service.check():
                     self.service.update()
-                    if flage > 0: flage = 0
-                else:
-                    time.sleep(config.settings.waiting_time)
-                    # TODO: fix this code
+                    if att_count > 0: att_count = 0
+                time.sleep(config.settings.waiting_time)
+                # TODO: fix this code
             except Exception as e:
-                flage += 1
-                self.logger.write(
-                    "cant update " + self.service.__class__.__name__ + ": " + str(e))
+                att_count += 1
+                self.logger.write("cant check or update " + self.service.__class__.__name__ + ": " + str(e))
