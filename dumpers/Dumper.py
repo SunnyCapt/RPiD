@@ -1,10 +1,13 @@
 import os
-import threading
 import time
+import logging
+from threading import Thread
 
 import config
+import vk_d
 from dumpers.vk_d.api import VK
 
+logger = logging.getLogger("general")
 
 class DumperMixin:
     def __init__(self, service_api):
@@ -32,10 +35,17 @@ class VkDumper(DumperMixin):
         self.peers = []
         self.hash = -1
 
-    @staticmethod
-    def _check_paths():
+    def _check_paths(self):
         os.makedirs(config.path.to_vk_dump, exist_ok=True)
+        os.makedirs(os.path.join(config.path.to_vk_dump, self.api.info.id), exist_ok=True)
+        os.makedirs(os.path.join(config.path.to_vk_dump, self.api.info.id, 'dialogs'), exist_ok=True)
         return None
+
+    def _update(self):
+        try:
+            vk_d.api.get_dialogs_history(self.api, self.peers)
+        except Exception as e:
+            logger.error(f"Cannt update vk: {e}")
 
     def check(self):
         peers = self.api.get_all_peers()
@@ -46,6 +56,7 @@ class VkDumper(DumperMixin):
 
     def update(self):
         self._check_paths()
+        self._update()
         print("VK is updated!")
         return None
 
@@ -83,10 +94,10 @@ def get_wrapper(service) -> DumperMixin:
             }[service.__class__](service)
 
 
-class Dumper(threading.Thread):
-    def __init__(self, service, logger, db):
-        threading.Thread.__init__(self, name=service.__class__.__name__)
-        self.logger = logger
+class Dumper(Thread):
+    def __init__(self, service, db):
+        Thread.__init__(self)
+        self.name = service.__class__.__name__
         self.db = db
         self.service: DumperMixin = get_wrapper(service)
 
@@ -94,11 +105,14 @@ class Dumper(threading.Thread):
         att_count = 0
         while att_count < config.settings.max_attempts:
             try:
+                logger.info(f"Checking {self.service.__class__.__name__}")
                 if self.service.check():
+                    logger.info(f"Start updating of {self.service.__class__.__name__}")
                     self.service.update()
+                    logger.info(f"Finished updating of {self.service.__class__.__name__}")
                     if att_count > 0: att_count = 0
                 time.sleep(config.settings.waiting_time)
                 # TODO: fix this code
             except Exception as e:
                 att_count += 1
-                self.logger.write("cant check or update " + self.service.__class__.__name__ + ": " + str(e))
+                logger.error(f"cant check or update {self.service.__class__.__name__}: {e}")

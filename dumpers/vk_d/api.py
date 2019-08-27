@@ -1,9 +1,16 @@
+import json
+import os
 import time
+import logging
 
+import math
 import vk
 from vk.exceptions import VkAPIError
 
 import config
+from dumper import VkDumper
+
+logger = logging.getLogger("general")
 
 PAUSE_TIME = 1.3
 
@@ -190,6 +197,53 @@ class VK(Account, Messages, Media):
 
     def __str__(self):
         return "%s\nid:   %s\nname: %s\n%s" % ("=" * 20, str(self.info["id"]), self.info["name"], "=" * 20)
+
+
+def get_dialogs_history(vk: VK, peers):
+    all_dialogs_message = {}
+    path_to_download = os.path.join(config.path.to_vk_dump, f"{vk.info.id}/dialogs")
+    for peer in peers:
+        try:
+            if not peer in config.vk.ignore:
+                logger.info(f"Получение сообщений из диалога с {peer}")
+
+                all_dialogs_message.update({peer: []})
+                page = 0
+
+                old_messages = None
+
+                if f"{peer}.json" in os.listdir(path_to_download):
+                        with open(config.path.to_download + "dialogs/%d.json" % peer, "rb") as dialog:
+                            old_messages = json.loads(dialog.read())
+
+                while True:
+                    try:
+                        messages = vk.get_messages(vk_id=peer, page=page, count=200)
+                    except Exception as e:
+                        logger.error(f"Не удалось получить {(page+1)*200}-{(page+1)*200+200} сообщения из диалога с {peer}:\n{e}")
+                        continue
+
+                    for message in messages["items"]:
+                        if message["date"] > old_messages[0]["date"]:
+                            all_dialogs_message[peer].append(message)
+                        else:
+                            break
+                    page += 1
+
+                    if messages["items"][-1]["date"] <= old_messages[0]["date"] or page > math.ceil(messages["count"] / 200) - 1:
+                        all_dialogs_message[peer]+=old_messages
+                        break
+
+                logger.info(f"Получено {len(messages['count'])} сообщений из диалога с {peer}\n")
+
+                data = json.dumps(all_dialogs_message[peer], separators=(',', ':'))
+                with open(os.path.join(path_to_download, f"{peer}.json"), "wb") as mess_file:
+                    mess_file.write(data.encode("utf-8"))
+
+                logger.info(f"Дилог с {peer} записан, обработано {peers.index(peer)+1}/{len(peers)} диалогов")
+        except Exception as e:
+                logger.error("Дилог с %d не получен\n%s" % (peer, str(e)))
+    logger.info('Получены все сообщения')
 
 
 if __name__ == '__main__':
