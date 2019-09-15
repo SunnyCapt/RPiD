@@ -3,6 +3,6 @@
 *trash
 *sessions
 *__pycache__
-*config*
 *log*
 docs/trash
+*local_config*
