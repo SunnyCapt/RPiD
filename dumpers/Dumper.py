@@ -4,7 +4,7 @@ import logging
 from threading import Thread
 
 import config
-import vk_d
+import vk_d.api
 from dumpers.vk_d.api import VK
 
 logger = logging.getLogger("general")
@@ -37,15 +37,15 @@ class VkDumper(DumperMixin):
 
     def _check_paths(self):
         os.makedirs(config.path.to_vk_dump, exist_ok=True)
-        os.makedirs(os.path.join(config.path.to_vk_dump, self.api.info.id), exist_ok=True)
-        os.makedirs(os.path.join(config.path.to_vk_dump, self.api.info.id, 'dialogs'), exist_ok=True)
+        os.makedirs(os.path.join(config.path.to_vk_dump, str(self.api.info.id)), exist_ok=True)
+        os.makedirs(os.path.join(config.path.to_vk_dump, str(self.api.info.id), 'dialogs'), exist_ok=True)
         return None
 
     def _update(self):
         try:
             vk_d.api.get_dialogs_history(self.api, self.peers)
         except Exception as e:
-            logger.error(f"Cannt update vk: {e}")
+            logger.error(f"Cannt update vk: {e}[{e.__traceback__.tb_lineno}]")
 
     def check(self):
         peers = self.api.get_all_peers()
@@ -115,4 +115,5 @@ class Dumper(Thread):
                 # TODO: fix this code
             except Exception as e:
                 att_count += 1
-                logger.error(f"cant check or update {self.service.__class__.__name__}: {e}")
+                logger.error(f"cant check or update {self.service.__class__.__name__}: {e}[{e.__traceback__.tb_lineno}]")
+                raise e
