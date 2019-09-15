@@ -1,9 +1,15 @@
+import json
+import os
 import time
+import logging
 
+import math
 import vk
 from vk.exceptions import VkAPIError
 
 import config
+
+logger = logging.getLogger("general")
 
 PAUSE_TIME = 1.3
 
@@ -45,8 +51,12 @@ class Account(VkMixin):
                 return "%s %s" % (resp['first_name'], resp['last_name'])
 
     def __check(self):
-        past_time = int(time.time()) - self.__LAST_CALL_TIME
+        field_name = f'{self.__class__.__name__}__LAST_CALL_TIME'.lower()
+        if getattr(self, field_name, None) is None:
+            setattr(self, field_name, self.__LAST_CALL_TIME)
+        past_time = int(time.time()) - getattr(self, field_name)
         if past_time < PAUSE_TIME: time.sleep(PAUSE_TIME - past_time)
+        setattr(self, field_name, time.time())
 
 
 class Messages(VkMixin):
@@ -92,11 +102,15 @@ class Messages(VkMixin):
 
     def get_messages(self, vk_id, page, count=15):
         self.__check()
-        return self.api.messages.getHistory(offset=count * page, count=count, peer_id=vk_id, v=5.38)['items']
+        return self.api.messages.getHistory(offset=count * page, count=count, peer_id=vk_id, v=5.38)
 
     def __check(self):
-        past_time = int(time.time()) - self.__LAST_CALL_TIME
+        field_name = f'{self.__class__.__name__}__LAST_CALL_TIME'.lower()
+        if getattr(self, field_name, None) is None:
+            setattr(self, field_name, self.__LAST_CALL_TIME)
+        past_time = int(time.time()) - getattr(self, field_name)
         if past_time < PAUSE_TIME: time.sleep(PAUSE_TIME - past_time)
+        setattr(self, field_name, time.time())
 
 
 class Media(VkMixin):
@@ -131,8 +145,13 @@ class Media(VkMixin):
         return self.api.wall.get(owner_id=owner_id, count=count, offset=count * page, v=5.92)
 
     def __check(self):
-        past_time = int(time.time()) - self.__LAST_CALL_TIME
+        field_name = f'{self.__class__.__name__}__LAST_CALL_TIME'.lower()
+        if getattr(self, field_name, None) is None:
+            setattr(self, field_name, self.__LAST_CALL_TIME)
+        past_time = int(time.time()) - getattr(self, field_name)
         if past_time < PAUSE_TIME: time.sleep(PAUSE_TIME - past_time)
+        setattr(self, field_name, time.time())
+
 
     # dont work
     # def getVideo(self, raw_video):
@@ -190,6 +209,56 @@ class VK(Account, Messages, Media):
 
     def __str__(self):
         return "%s\nid:   %s\nname: %s\n%s" % ("=" * 20, str(self.info["id"]), self.info["name"], "=" * 20)
+
+
+def get_dialogs_history(vk_acc: VK, peers):
+    all_dialogs_message = {}
+    path_to_download = os.path.join(config.path.to_vk_dump, f"{vk_acc.info.id}", "dialogs")
+    for peer in peers:
+        try:
+            if peer in config.vk.ignore:
+                continue
+
+            logger.info(f"Получение сообщений из диалога с {peer}")
+            all_dialogs_message.update({peer: []})
+            page = 0
+
+            old_messages = None
+            if f"{peer}.json" in os.listdir(path_to_download):
+                with open(os.path.join(path_to_download, f"{peer}.json"), "rb") as dialog:
+                    old_messages = json.loads(dialog.read())
+
+            while True:
+                messages = vk_acc.get_messages(vk_id=peer, page=page, count=200)
+
+                page_count = math.ceil(messages["count"] / 200) - 1 if messages["count"] > 0 else 0
+                logger.info(f"Получено {page}/{page_count} страниц диалога с {peer} [всего сообщений {messages['count']}]")
+
+                if messages is None or messages["count"] == 0: raise Exception()
+
+                for message in messages["items"]:
+                    if message["date"] > (old_messages[0]["date"] if old_messages else -1):
+                        all_dialogs_message[peer].append(message)
+                    else:
+                        break
+
+                page += 1
+
+                if messages["items"][-1]["date"] <= (old_messages[0]["date"] if old_messages and old_messages[0] else -1) or page > page_count:
+                    all_dialogs_message[peer] += old_messages if old_messages else []
+                    break
+
+            logger.info(f"Получено {messages['count']} сообщений из диалога с {peer}")
+
+            data = json.dumps(all_dialogs_message[peer], separators=(',', ':'))
+            with open(os.path.join(path_to_download, f"{peer}.json"), "wb") as mess_file:
+                mess_file.write(data.encode("utf-8"))
+
+            logger.info(f"Дилог с {peer} записан, обработано {peers.index(peer) + 1}/{len(peers)} диалогов")
+
+        except Exception as e:
+                logger.error(f"Дилог с {peer} не получен: {e}[{e.__traceback__.tb_lineno}]")
+    logger.info('Получены все сообщения')
 
 
 if __name__ == '__main__':
