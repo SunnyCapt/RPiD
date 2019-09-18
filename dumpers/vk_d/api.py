@@ -222,6 +222,7 @@ def get_dialogs_history(vk_acc: VK, peers):
             logger.info(f"Получение сообщений из диалога с {peer}")
             all_dialogs_message.update({peer: []})
             page = 0
+            found_dialog = True
 
             old_messages = None
             if f"{peer}.json" in os.listdir(path_to_download):
@@ -234,7 +235,9 @@ def get_dialogs_history(vk_acc: VK, peers):
                 page_count = math.ceil(messages["count"] / 200) - 1 if messages["count"] > 0 else 0
                 logger.info(f"Получено {page}/{page_count} страниц диалога с {peer} [всего сообщений {messages['count']}]")
 
-                if messages is None or messages["count"] == 0: raise Exception()
+                if messages is None or messages["count"] == 0:
+                    found_dialog = False
+                    break
 
                 for message in messages["items"]:
                     if message["date"] > (old_messages[0]["date"] if old_messages else -1):
@@ -247,6 +250,10 @@ def get_dialogs_history(vk_acc: VK, peers):
                 if messages["items"][-1]["date"] <= (old_messages[0]["date"] if old_messages and old_messages[0] else -1) or page > page_count:
                     all_dialogs_message[peer] += old_messages if old_messages else []
                     break
+
+            if not found_dialog:
+                logger.info(f"Нет сообщений в диалоге с {peer}")
+                break
 
             logger.info(f"Получено {messages['count']} сообщений из диалога с {peer}")
 

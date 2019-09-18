@@ -4,7 +4,7 @@ import logging
 from threading import Thread
 
 import config
-import vk_d.api
+from dumpers.vk_d import api as vk_api
 from dumpers.vk_d.api import VK
 
 logger = logging.getLogger("general")
@@ -43,7 +43,7 @@ class VkDumper(DumperMixin):
 
     def _update(self):
         try:
-            vk_d.api.get_dialogs_history(self.api, self.peers)
+            vk_api.get_dialogs_history(self.api, self.peers)
         except Exception as e:
             logger.error(f"Cannt update vk: {e}[{e.__traceback__.tb_lineno}]")
 
