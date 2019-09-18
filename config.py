@@ -6,8 +6,8 @@ from typing import List, Dict
 
 
 class db:
-    login: str = parse.quote_plus(None)
-    password: str = parse.quote_plus(None)
+    login: str = parse.quote_plus("")
+    password: str = parse.quote_plus("")
     server: str = None
     port: int = None
     db_name: str = None # "rpid"
