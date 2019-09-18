@@ -20,10 +20,10 @@ class vk:
 # ======================
 class path:
     base_dir: str = os.path.dirname(os.path.abspath(__file__))
-    to_log: str = os.path.join(base_dir, "data/log.log")
-    to_vk_dump: str = os.path.join(base_dir, "data/vk/")
-    to_tg_dump: str = os.path.join(base_dir, "data/tg/")
-    to_fb_dump: str = os.path.join(base_dir, "data/fb/")
+    to_log: str = os.path.join(base_dir, "data", "log.log")
+    to_vk_dump: str = os.path.join(base_dir, "data", "vk")
+    to_tg_dump: str = os.path.join(base_dir, "data", "tg")
+    to_fb_dump: str = os.path.join(base_dir, "data", "fb")
 # ======================
 class settings:
     max_attempts: int = 5
@@ -71,5 +71,14 @@ try:
 except ImportError as e:
     pass
 
+for attr in filter(lambda x: not x.startswith('_'), dir(path)):
+    full_path = getattr(path, attr)
+    if os.path.exists(full_path): continue
+
+    is_file = "." in full_path.split("/")[0][1:]
+    if is_file:
+        open(full_path, 'w').close()
+        continue
+    os.makedirs(full_path, exist_ok=True)
 
 logging.config.dictConfig(logging_.config)

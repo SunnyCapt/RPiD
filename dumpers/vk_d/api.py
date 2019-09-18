@@ -213,7 +213,7 @@ class VK(Account, Messages, Media):
 
 def get_dialogs_history(vk_acc: VK, peers):
     all_dialogs_message = {}
-    path_to_download = os.path.join(config.path.to_vk_dump, f"{vk_acc.info.id}", "dialogs")
+    path_to_download = os.path.join(config.path.to_vk_dump, str(vk_acc.info.id), "dialogs")
     for peer in peers:
         try:
             if peer in config.vk.ignore:
