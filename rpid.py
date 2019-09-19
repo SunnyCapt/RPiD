@@ -13,8 +13,8 @@ class RPiD:
         try:
             self.db = DB(config.db.db_uri)
             self._s_vk = VK(login=config.vk.login, password=config.vk.password)
-            # TODO tg auth
-            # TODO fb auth
+            # TODO: tg auth
+            # TODO: fb auth
         except Exception as e:
             logger.error(f"can't run dumper: {e}")
             raise e
@@ -40,6 +40,8 @@ def main():
     for thread in rpid.get_dumpers():
         thread.setDaemon(True)
         thread.start()
+    input()
+
 
 
 if __name__ == "__main__":
