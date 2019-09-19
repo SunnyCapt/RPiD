@@ -75,7 +75,7 @@ for attr in filter(lambda x: not x.startswith('_'), dir(path)):
     full_path = getattr(path, attr)
     if os.path.exists(full_path): continue
 
-    is_file = "." in full_path.split("/")[0][1:]
+    is_file = "." in full_path.split("/")[-1][1:]
     if is_file:
         open(full_path, 'w').close()
         continue

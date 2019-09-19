@@ -253,7 +253,7 @@ def get_dialogs_history(vk_acc: VK, peers):
 
             if not found_dialog:
                 logger.info(f"Нет сообщений в диалоге с {peer}")
-                break
+                continue
 
             logger.info(f"Получено {messages['count']} сообщений из диалога с {peer}")
 

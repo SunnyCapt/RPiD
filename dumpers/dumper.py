@@ -32,6 +32,7 @@ class DumperMixin:
 class VkDumper(DumperMixin):
     def __init__(self, service):
         self.api: VK = service
+        self._check_paths()
         self.peers = []
         self.hash = -1
 
@@ -54,7 +55,6 @@ class VkDumper(DumperMixin):
         return True
 
     def update(self):
-        self._check_paths()
         self._update()
         print("VK is updated!")
         return None
