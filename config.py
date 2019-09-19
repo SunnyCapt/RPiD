@@ -58,7 +58,7 @@ class logging_:
         },
         "loggers": {
             "general": {
-                "handlers": ["console", "file"],
+                "handlers": ["file"],
                 "level": "INFO",
                 'propagate': False,
             },

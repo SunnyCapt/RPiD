@@ -1,3 +1,4 @@
+import sys
 import logging
 from typing import List
 
@@ -38,11 +39,12 @@ class RPiD:
 def main():
     rpid = RPiD()
     for thread in rpid.get_dumpers():
-        thread.setDaemon(True)
         thread.start()
-    input()
-
+    return None
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "cli":
+        config.logging_.config["loggers"]["general"]["handlers"].append("console")
+        logging.config.dictConfig(config.logging_.config)
     main()
