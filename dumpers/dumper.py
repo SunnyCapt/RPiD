@@ -32,11 +32,11 @@ class DumperMixin:
 class VkDumper(DumperMixin):
     def __init__(self, service):
         self.api: VK = service
+        self._check_paths()
         self.peers = []
         self.hash = -1
 
     def _check_paths(self):
-        os.makedirs(config.path.to_vk_dump, exist_ok=True)
         os.makedirs(os.path.join(config.path.to_vk_dump, str(self.api.info.id)), exist_ok=True)
         os.makedirs(os.path.join(config.path.to_vk_dump, str(self.api.info.id), 'dialogs'), exist_ok=True)
         return None
@@ -55,7 +55,6 @@ class VkDumper(DumperMixin):
         return True
 
     def update(self):
-        self._check_paths()
         self._update()
         print("VK is updated!")
         return None

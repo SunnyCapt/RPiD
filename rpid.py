@@ -16,10 +16,8 @@ class RPiD:
             # TODO tg auth
             # TODO fb auth
         except Exception as e:
-            print("can't run dumper: " + str(e))
-            logger.error(str(e))
+            logger.error(f"can't run dumper: {e}")
             raise e
-            # exit(-1)
 
     def _get_services(self) -> dict:
         fields = self.__dict__
@@ -42,7 +40,6 @@ def main():
     for thread in rpid.get_dumpers():
         thread.setDaemon(True)
         thread.start()
-    input()
 
 
 if __name__ == "__main__":
