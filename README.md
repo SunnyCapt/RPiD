@@ -7,7 +7,7 @@
 2) External hard drive (for data storage)
 3) Electricity, Internet and something else...
 ### What  ̶d̶o̶e̶s̶ will it do?
-   * RPiD saves your messages, etc. in local storage and after that deletes them 
+   * Controller saves your messages, etc. in local storage and after that deletes them 
 
 
 ##### Tg: [@SunnyCapt](https://telegram.me/SunnyCapt)
