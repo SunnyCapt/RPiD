@@ -9,7 +9,7 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "cli":
+    if len(sys.argv) > 1 and sys.argv[1] == "--log":
         config.logging_.config["loggers"]["general"]["handlers"].append("console")
         logging.config.dictConfig(config.logging_.config)
     main()
